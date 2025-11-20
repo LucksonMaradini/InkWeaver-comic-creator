@@ -1,0 +1,8 @@
+{
+  "name": "InkWeaver AI",
+  "description": "Turn short stories into comic strips with AI-generated panels, customizable styles, and image editing.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
