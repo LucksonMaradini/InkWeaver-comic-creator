@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Wand2, Layout, RefreshCw, Info, Sparkles, Palette, Ratio, Grid, Maximize, Columns, LayoutGrid, Grid3x3, Save, FileDown, FileText, XCircle, Trash2, Brain, Zap, MessageCircle, CheckCircle } from 'lucide-react';
+import { Wand2, Layout, RefreshCw, Info, Sparkles, Palette, Ratio, Grid, Maximize, Columns, LayoutGrid, Grid3x3, Save, FileDown, FileText, XCircle, Trash2, Brain, Zap, MessageCircle, CheckCircle, ArrowRightCircle, PlusCircle } from 'lucide-react';
 import { ComicPanel, StylePreset, AspectRatio } from '../types';
-import { generateComicScript, generatePanelImage, editPanelImage, improveStoryScript, generateStoryIdea, reviewStoryPlan } from '../services/geminiService';
+import { generateComicScript, generatePanelImage, editPanelImage, improveStoryScript, generateStoryIdea, reviewStoryPlan, generateContinuationScript } from '../services/geminiService';
 import Panel from './Panel';
 import PanelEditor from './PanelEditor';
 import { jsPDF } from 'jspdf';
@@ -25,6 +25,7 @@ const LAYOUT_PRESETS = [
 const ComicMaker: React.FC = () => {
   const [story, setStory] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isContinuing, setIsContinuing] = useState(false);
   const [panels, setPanels] = useState<ComicPanel[]>([]);
   const [selectedStyle, setSelectedStyle] = useState<StylePreset>(STYLES[1]);
   const [panelCount, setPanelCount] = useState(4);
@@ -186,9 +187,63 @@ const ComicMaker: React.FC = () => {
     }
   };
 
+  const handleContinueStory = async () => {
+    if (!story.trim() || panels.length === 0) return;
+
+    setIsContinuing(true);
+    cancelledRef.current = false;
+    setStatusMessage('Continuing the adventure...');
+
+    try {
+       // 1. Generate Continuation Script
+       // We ask for the same number of panels as the current layout setting
+       const script = await generateContinuationScript(story, panelCount, selectedStyle.promptModifier);
+       
+       if (cancelledRef.current) return;
+
+       const startOrder = panels.length;
+       const newPanels: ComicPanel[] = script.map((desc, index) => ({
+         id: `panel-cont-${Date.now()}-${index}`,
+         order: startOrder + index,
+         description: `${desc}, ${selectedStyle.promptModifier}`,
+         imageUrl: null,
+         isLoading: true,
+         aspectRatio: aspectRatio,
+         bubbles: []
+       }));
+
+       // Append new placeholders
+       setPanels(prev => [...prev, ...newPanels]);
+
+       // 2. Generate Images for new panels
+       for (let i = 0; i < newPanels.length; i++) {
+          if (cancelledRef.current) break;
+          const panel = newPanels[i];
+          
+          try {
+             const imageUrl = await generatePanelImage(panel.description, aspectRatio);
+             if (cancelledRef.current) break;
+             
+             setPanels(prev => prev.map(p => p.id === panel.id ? { ...p, imageUrl, isLoading: false } : p));
+          } catch (e) {
+              console.error(`Failed to generate panel ${panel.id}`, e);
+              setPanels(prev => prev.map(p => p.id === panel.id ? { ...p, isLoading: false } : p));
+          }
+       }
+
+       if (!cancelledRef.current) setStatusMessage('Story continued!');
+    } catch (error) {
+       console.error("Continuation failed", error);
+       setStatusMessage('Could not continue story.');
+    } finally {
+       setIsContinuing(false);
+    }
+  };
+
   const cancelGeneration = () => {
     cancelledRef.current = true;
     setIsGenerating(false);
+    setIsContinuing(false);
     setStatusMessage('Cancelling...');
     setPanels(prev => prev.map(p => ({ ...p, isLoading: false })));
   };
@@ -360,26 +415,26 @@ const ComicMaker: React.FC = () => {
             
             {/* Story Input */}
             <div className="lg:col-span-8 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <label className="flex items-center gap-2 text-sm font-bold text-purple-300 uppercase tracking-widest font-bangers text-lg">
                   <Sparkles className="w-4 h-4" /> Your Narrative
                 </label>
                 
-                {/* AI Toolbar */}
-                <div className="flex items-center gap-1">
+                {/* AI Toolbar - Stacked on mobile, Row on Desktop */}
+                <div className="grid grid-cols-3 gap-2 w-full md:w-auto">
                    <button 
                      onClick={handleGenerateIdea}
                      disabled={isImproving}
-                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 border border-purple-500/20 transition-all text-xs font-bold uppercase tracking-wide"
+                     className="flex items-center justify-center gap-1.5 px-2 md:px-3 py-2 md:py-1.5 rounded-lg bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 border border-purple-500/20 transition-all text-[10px] md:text-xs font-bold uppercase tracking-wide"
                      title="Generate a random creative idea"
                    >
                      <Brain className="w-3 h-3" />
-                     Generate Idea
+                     <span className="hidden md:inline">Generate</span> Idea
                    </button>
                    <button 
                      onClick={handleImproveScript}
                      disabled={!story.trim() || isImproving}
-                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 border border-blue-500/20 transition-all text-xs font-bold uppercase tracking-wide disabled:opacity-50"
+                     className="flex items-center justify-center gap-1.5 px-2 md:px-3 py-2 md:py-1.5 rounded-lg bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 border border-blue-500/20 transition-all text-[10px] md:text-xs font-bold uppercase tracking-wide disabled:opacity-50"
                      title="Enhance the text for comic adaptation"
                    >
                      <Zap className="w-3 h-3" />
@@ -388,7 +443,7 @@ const ComicMaker: React.FC = () => {
                    <button 
                      onClick={handleReviewStory}
                      disabled={!story.trim() || isImproving}
-                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-300 hover:bg-green-500/20 border border-green-500/20 transition-all text-xs font-bold uppercase tracking-wide disabled:opacity-50"
+                     className="flex items-center justify-center gap-1.5 px-2 md:px-3 py-2 md:py-1.5 rounded-lg bg-green-500/10 text-green-300 hover:bg-green-500/20 border border-green-500/20 transition-all text-[10px] md:text-xs font-bold uppercase tracking-wide disabled:opacity-50"
                      title="Analyze story potential"
                    >
                      <MessageCircle className="w-3 h-3" />
@@ -536,26 +591,26 @@ const ComicMaker: React.FC = () => {
       </div>
 
       {/* Status Bar */}
-      {(statusMessage || isGenerating) && (
+      {(statusMessage || isGenerating || isContinuing) && (
         <div className="flex justify-center animate-pop">
            <div className="bg-ink-900/80 backdrop-blur-md text-purple-200 px-6 py-3 rounded-full text-sm font-hand text-lg border border-purple-500/30 flex items-center gap-3 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
              <div className="relative w-3 h-3">
-               {isGenerating && <div className="absolute inset-0 bg-purple-400 rounded-full animate-ping"></div>}
-               <div className={`absolute inset-0 rounded-full ${isGenerating ? 'bg-purple-400' : 'bg-blue-400'}`}></div>
+               {(isGenerating || isContinuing) && <div className="absolute inset-0 bg-purple-400 rounded-full animate-ping"></div>}
+               <div className={`absolute inset-0 rounded-full ${(isGenerating || isContinuing) ? 'bg-purple-400' : 'bg-blue-400'}`}></div>
              </div>
-             {statusMessage || (isGenerating ? 'Generating...' : '')}
+             {statusMessage || ((isGenerating || isContinuing) ? 'Generating...' : '')}
            </div>
         </div>
       )}
 
       {/* Comic Grid */}
       {panels.length > 0 && (
-        <div className={`grid gap-8 ${getGridClass(panels.length)}`}>
+        <div className={`grid gap-8 ${getGridClass(panels.length <= 6 ? panels.length : 4)}`}>
           {panels.map((panel, index) => (
             <div 
               key={panel.id} 
               className="animate-slide-up" 
-              style={{ animationDelay: `${index * 150}ms` }}
+              style={{ animationDelay: `${(index % 4) * 100}ms` }}
             >
               <Panel 
                 panel={panel} 
@@ -564,6 +619,23 @@ const ComicMaker: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Continue Story Button */}
+      {panels.length > 0 && !isGenerating && !isContinuing && (
+          <div className="flex justify-center pt-8 pb-20 animate-slide-up">
+              <button
+                  onClick={handleContinueStory}
+                  className="group relative px-8 py-4 bg-ink-900 hover:bg-ink-800 border border-purple-500/30 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(168,85,247,0.2)]"
+              >
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-blue-600/10 group-hover:opacity-100 opacity-0 transition-opacity"></div>
+                  <div className="flex items-center gap-3 relative z-10">
+                      <PlusCircle className="w-6 h-6 text-purple-400 group-hover:rotate-90 transition-transform duration-500" />
+                      <span className="font-bangers text-xl text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300 tracking-wider">Continue Story</span>
+                      <ArrowRightCircle className="w-5 h-5 text-blue-400 group-hover:translate-x-1 transition-transform" />
+                  </div>
+              </button>
+          </div>
       )}
 
       {panels.length === 0 && !isGenerating && (

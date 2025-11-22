@@ -100,6 +100,54 @@ export const generateComicScript = async (
   }
 };
 
+export const generateContinuationScript = async (
+  fullHistory: string,
+  panelCount: number,
+  styleDescription: string
+): Promise<string[]> => {
+  const ai = getClient();
+  
+  const prompt = `
+    You are an expert comic book writer.
+    
+    CONTEXT (Previous Story):
+    "${fullHistory}"
+    
+    TASK:
+    Write the script for the NEXT ${panelCount} panels to continue this story.
+    The visual style is: ${styleDescription}.
+    
+    CRITICAL INSTRUCTION:
+    Maintain strict visual consistency. If a character was described previously (e.g., "girl with green hair"), you MUST repeat those visual traits in these new prompts.
+    
+    Return ONLY a JSON array of strings, where each string is a detailed visual description for an image generator.
+  `;
+
+  const responseSchema: Schema = {
+    type: Type.ARRAY,
+    items: {
+      type: Type.STRING
+    }
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: responseSchema,
+      }
+    });
+    
+    const jsonText = response.text || "[]";
+    return JSON.parse(jsonText) as string[];
+  } catch (error) {
+    console.error("Error generating continuation script:", error);
+    return Array(panelCount).fill(`A continuation scene...`);
+  }
+};
+
 // --- Image Generation (Imagen) ---
 
 export const generatePanelImage = async (

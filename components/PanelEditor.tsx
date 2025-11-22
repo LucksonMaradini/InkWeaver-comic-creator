@@ -176,7 +176,7 @@ const PanelEditor: React.FC<PanelEditorProps> = ({ panel, onSave, onMagicEdit, o
     const newBubble: TextBubble = {
       id: Date.now().toString(),
       type,
-      text: type === 'caption' ? 'Meanwhile...' : 'Hello!',
+      text: type === 'caption' ? 'Meanwhile...' : 'Hey!',
       x: 50,
       y: 50,
       width: 150,
@@ -347,11 +347,17 @@ const PanelEditor: React.FC<PanelEditorProps> = ({ panel, onSave, onMagicEdit, o
                     {bubble.text}
                     {selectedBubbleId === bubble.id && (
                         <>
-                           {/* Resize Handles */}
+                           {/* Corner Handles */}
                            <div onMouseDown={(e) => handleBubbleMouseDown(e, bubble.id, 'nw')} className="absolute top-0 left-0 w-4 h-4 bg-purple-500 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2 cursor-nw-resize z-50 shadow-md" />
                            <div onMouseDown={(e) => handleBubbleMouseDown(e, bubble.id, 'ne')} className="absolute top-0 right-0 w-4 h-4 bg-purple-500 border-2 border-white rounded-full translate-x-1/2 -translate-y-1/2 cursor-ne-resize z-50 shadow-md" />
                            <div onMouseDown={(e) => handleBubbleMouseDown(e, bubble.id, 'sw')} className="absolute bottom-0 left-0 w-4 h-4 bg-purple-500 border-2 border-white rounded-full -translate-x-1/2 translate-y-1/2 cursor-sw-resize z-50 shadow-md" />
                            <div onMouseDown={(e) => handleBubbleMouseDown(e, bubble.id, 'se')} className="absolute bottom-0 right-0 w-4 h-4 bg-purple-500 border-2 border-white rounded-full translate-x-1/2 translate-y-1/2 cursor-se-resize z-50 shadow-md" />
+                           
+                           {/* Edge Handles */}
+                           <div onMouseDown={(e) => handleBubbleMouseDown(e, bubble.id, 'n')} className="absolute top-0 left-1/2 w-4 h-4 bg-purple-500 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2 cursor-n-resize z-50 shadow-md" />
+                           <div onMouseDown={(e) => handleBubbleMouseDown(e, bubble.id, 's')} className="absolute bottom-0 left-1/2 w-4 h-4 bg-purple-500 border-2 border-white rounded-full -translate-x-1/2 translate-y-1/2 cursor-s-resize z-50 shadow-md" />
+                           <div onMouseDown={(e) => handleBubbleMouseDown(e, bubble.id, 'w')} className="absolute top-1/2 left-0 w-4 h-4 bg-purple-500 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2 cursor-w-resize z-50 shadow-md" />
+                           <div onMouseDown={(e) => handleBubbleMouseDown(e, bubble.id, 'e')} className="absolute top-1/2 right-0 w-4 h-4 bg-purple-500 border-2 border-white rounded-full translate-x-1/2 -translate-y-1/2 cursor-e-resize z-50 shadow-md" />
                         </>
                     )}
                 </div>
