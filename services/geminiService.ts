@@ -69,7 +69,7 @@ export const generateComicScript = async (
     
     Story: "${story}"
     
-    Return ONLY a JSON array of strings, where each string is a detailed visual description for an image generator (Imagen).
+    Return ONLY a JSON array of strings, where each string is a detailed visual description for an image generator.
     Do not include character names if they aren't visually described in the prompt (e.g., use "a young boy with red hair" instead of "Timmy").
     Focus on visual details, lighting, and composition suitable for the requested style.
   `;
@@ -148,7 +148,7 @@ export const generateContinuationScript = async (
   }
 };
 
-// --- Image Generation (Imagen) ---
+// --- Image Generation ---
 
 export const generatePanelImage = async (
   prompt: string,
@@ -157,28 +157,36 @@ export const generatePanelImage = async (
   const ai = getClient();
   
   try {
-    // Imagen 4.0 for high quality generation
-    const response = await ai.models.generateImages({
-      model: 'imagen-4.0-generate-001',
-      prompt: prompt,
-      config: {
-        numberOfImages: 1,
-        aspectRatio: aspectRatio,
-        outputMimeType: 'image/jpeg',
+    // Using gemini-2.5-flash-image for reliable generation
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [{ text: prompt }]
       },
+      config: {
+        imageConfig: {
+          aspectRatio: aspectRatio,
+        }
+      }
     });
 
-    const base64Image = response.generatedImages?.[0]?.image?.imageBytes;
-    if (!base64Image) throw new Error("No image generated");
-    
-    return `data:image/jpeg;base64,${base64Image}`;
+    const parts = response.candidates?.[0]?.content?.parts;
+    if (parts) {
+      for (const part of parts) {
+        if (part.inlineData && part.inlineData.data) {
+          return `data:image/png;base64,${part.inlineData.data}`;
+        }
+      }
+    }
+
+    throw new Error("No image generated in response");
   } catch (error) {
     console.error("Error generating image:", error);
     throw error;
   }
 };
 
-// --- Image Editing (Gemini 2.5 Flash Image) ---
+// --- Image Editing ---
 
 export const editPanelImage = async (
   originalImageBase64: string,
@@ -211,10 +219,14 @@ export const editPanelImage = async (
     });
 
     const parts = response.candidates?.[0]?.content?.parts;
-    if (parts && parts[0]?.inlineData) {
-        const newBase64 = parts[0].inlineData.data;
-        return `data:image/png;base64,${newBase64}`;
+    if (parts) {
+      for (const part of parts) {
+        if (part.inlineData && part.inlineData.data) {
+          return `data:image/png;base64,${part.inlineData.data}`;
+        }
+      }
     }
+    
     throw new Error("No edited image returned");
   } catch (error) {
     console.error("Error editing image:", error);

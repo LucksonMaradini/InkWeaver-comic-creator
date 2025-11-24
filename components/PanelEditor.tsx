@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Edit2, Download, Wand2, X, Check, Sliders, Crop, RotateCw, Info, Type, MessageSquare, Cloud, Sidebar, Trash2, ArrowLeft, Sparkles } from 'lucide-react';
+import { Edit2, Download, Wand2, X, Check, Sliders, Crop, RotateCw, Info, Type, MessageSquare, Cloud, Sidebar, Trash2, ArrowLeft, Sparkles, RefreshCw } from 'lucide-react';
 import { ComicPanel, TextBubble } from '../types';
 
 interface PanelEditorProps {
@@ -266,6 +266,16 @@ const PanelEditor: React.FC<PanelEditorProps> = ({ panel, onSave, onMagicEdit, o
     };
   }, [isDragging, resizeDirection, selectedBubbleId]);
 
+  // --- AI Remix Handlers ---
+  const handleUseOriginalPrompt = () => {
+    setMagicPrompt(panel.description);
+  };
+
+  const handleRegenerate = () => {
+    onMagicEdit(panel.id, panel.description);
+    onClose();
+  };
+
   const handleMagicSubmit = () => {
       if (!magicPrompt.trim()) return;
       onMagicEdit(panel.id, magicPrompt);
@@ -365,184 +375,185 @@ const PanelEditor: React.FC<PanelEditorProps> = ({ panel, onSave, onMagicEdit, o
             </div>
         </div>
 
-        {/* Sidebar Controls */}
-        <div className="w-full lg:w-[350px] bg-ink-900 border-l border-ink-700 flex flex-col z-20 shadow-2xl">
-            <div className="flex border-b border-ink-700 bg-ink-800">
-            {['magic', 'text', 'adjust', 'transform'].map((tab) => (
-                <button
-                key={tab}
-                onClick={() => setActiveTab(tab as any)}
-                className={`flex-1 py-4 text-sm font-medium flex items-center justify-center transition-all relative ${activeTab === tab ? 'text-purple-300 bg-ink-900' : 'text-ink-500 hover:text-white hover:bg-ink-800'}`}
-                >
-                {tab === 'magic' && <Wand2 className="w-5 h-5" />}
-                {tab === 'text' && <Type className="w-5 h-5" />}
-                {tab === 'adjust' && <Sliders className="w-5 h-5" />}
-                {tab === 'transform' && <Crop className="w-5 h-5" />}
-                {activeTab === tab && <div className="absolute top-0 left-0 w-full h-1 bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]" />}
-                </button>
-            ))}
+        {/* Sidebar */}
+        <div className="w-full lg:w-96 bg-ink-900 border-l border-ink-700 flex flex-col h-[50vh] lg:h-full">
+            {/* Tabs */}
+            <div className="flex border-b border-ink-700">
+                <button onClick={() => setActiveTab('magic')} className={`flex-1 p-4 flex justify-center ${activeTab === 'magic' ? 'text-purple-400 border-b-2 border-purple-400 bg-ink-800' : 'text-ink-400 hover:text-white'}`}><Wand2 className="w-5 h-5" /></button>
+                <button onClick={() => setActiveTab('text')} className={`flex-1 p-4 flex justify-center ${activeTab === 'text' ? 'text-purple-400 border-b-2 border-purple-400 bg-ink-800' : 'text-ink-400 hover:text-white'}`}><Type className="w-5 h-5" /></button>
+                <button onClick={() => setActiveTab('adjust')} className={`flex-1 p-4 flex justify-center ${activeTab === 'adjust' ? 'text-purple-400 border-b-2 border-purple-400 bg-ink-800' : 'text-ink-400 hover:text-white'}`}><Sliders className="w-5 h-5" /></button>
+                <button onClick={() => setActiveTab('transform')} className={`flex-1 p-4 flex justify-center ${activeTab === 'transform' ? 'text-purple-400 border-b-2 border-purple-400 bg-ink-800' : 'text-ink-400 hover:text-white'}`}><Crop className="w-5 h-5" /></button>
             </div>
 
-            <div className="flex-1 p-6 overflow-y-auto space-y-8 bg-ink-900 custom-scrollbar">
+            {/* Content */}
+            <div className="flex-1 p-6 overflow-y-auto">
+                
                 {activeTab === 'magic' && (
-                    <div className="space-y-4 animate-slide-up">
-                    <div className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-purple-500/20 p-4 rounded-2xl text-sm text-purple-200">
-                        <p className="flex items-center gap-2 mb-2 font-bold font-bangers tracking-wide text-lg"><Wand2 className="w-4 h-4"/> AI Remix</p>
-                        <p className="mb-3 opacity-90">Describe changes to regenerate parts of the image.</p>
-                        <p className="text-xs text-purple-300/80 flex items-start gap-2 bg-black/20 p-2 rounded-lg mb-4">
-                            <Info className="w-3 h-3 mt-0.5 shrink-0" />
-                            <span>Tip: "Make the sky purple", "Add a cat"</span>
-                        </p>
-                        <button 
-                           onClick={() => setMagicPrompt(panel.description)}
-                           className="w-full py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors flex items-center justify-center gap-2"
+                    <div className="space-y-6 animate-slide-up">
+                        <div className="space-y-2">
+                             <div className="flex items-center justify-between">
+                                <label className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-purple-400" /> AI Remix
+                                </label>
+                             </div>
+                             <p className="text-xs text-ink-400">Describe changes you want to see in this panel.</p>
+                        </div>
+                        <textarea
+                            value={magicPrompt}
+                            onChange={(e) => setMagicPrompt(e.target.value)}
+                            placeholder="Make it raining, change background to sunset..."
+                            className="w-full h-32 bg-ink-950 border border-ink-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-purple-500/50 outline-none resize-none font-hand text-lg"
+                        />
+                         <div className="grid grid-cols-2 gap-3">
+                            <button
+                                onClick={handleUseOriginalPrompt}
+                                className="px-4 py-3 bg-ink-800 hover:bg-ink-700 text-ink-300 rounded-xl font-medium transition-colors text-xs flex items-center justify-center gap-2 border border-ink-700"
+                            >
+                                <Info className="w-3 h-3" /> Use Prompt
+                            </button>
+                             <button
+                                onClick={handleRegenerate}
+                                className="px-4 py-3 bg-blue-900/30 hover:bg-blue-900/50 text-blue-300 rounded-xl font-medium transition-colors text-xs flex items-center justify-center gap-2 border border-blue-500/30"
+                            >
+                                <RefreshCw className="w-3 h-3" /> Regenerate
+                            </button>
+                        </div>
+                        <button
+                            onClick={handleMagicSubmit}
+                            disabled={!magicPrompt.trim()}
+                            className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-white font-bangers tracking-wide text-lg shadow-lg hover:shadow-purple-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                           <Sparkles className="w-3 h-3" /> Use Original Description
+                            Generate Edit
                         </button>
-                    </div>
-                    <textarea
-                        value={magicPrompt}
-                        onChange={(e) => setMagicPrompt(e.target.value)}
-                        placeholder="What would you like to change?"
-                        className="w-full h-32 bg-ink-950 border border-ink-700 rounded-xl p-4 text-white placeholder-ink-600 focus:ring-2 focus:ring-purple-500 outline-none resize-none font-hand text-lg"
-                    />
-                    <button
-                        onClick={handleMagicSubmit}
-                        disabled={!magicPrompt.trim()}
-                        className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg"
-                    >
-                        <Wand2 className="w-4 h-4" /> Cast Spell
-                    </button>
                     </div>
                 )}
 
                 {activeTab === 'text' && (
                     <div className="space-y-6 animate-slide-up">
-                    <div className="grid grid-cols-3 gap-3">
-                        <button onClick={() => addBubble('speech')} className="group flex flex-col items-center gap-2 p-3 bg-ink-800 hover:bg-ink-700 rounded-xl text-ink-300 hover:text-white transition-colors border border-transparent hover:border-white/10">
-                        <MessageSquare className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-medium">Speech</span>
-                        </button>
-                        <button onClick={() => addBubble('thought')} className="group flex flex-col items-center gap-2 p-3 bg-ink-800 hover:bg-ink-700 rounded-xl text-ink-300 hover:text-white transition-colors border border-transparent hover:border-white/10">
-                        <Cloud className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-medium">Thought</span>
-                        </button>
-                        <button onClick={() => addBubble('caption')} className="group flex flex-col items-center gap-2 p-3 bg-ink-800 hover:bg-ink-700 rounded-xl text-ink-300 hover:text-white transition-colors border border-transparent hover:border-white/10">
-                        <Sidebar className="w-6 h-6 rotate-90 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-medium">Caption</span>
-                        </button>
-                    </div>
+                         <div className="grid grid-cols-3 gap-3">
+                             <button onClick={() => addBubble('speech')} className="flex flex-col items-center gap-2 p-3 bg-ink-800 rounded-xl hover:bg-ink-700 transition-colors border border-ink-700 hover:border-purple-500/50">
+                                 <MessageSquare className="w-6 h-6 text-white" />
+                                 <span className="text-[10px] uppercase font-bold text-ink-400">Speech</span>
+                             </button>
+                             <button onClick={() => addBubble('thought')} className="flex flex-col items-center gap-2 p-3 bg-ink-800 rounded-xl hover:bg-ink-700 transition-colors border border-ink-700 hover:border-purple-500/50">
+                                 <Cloud className="w-6 h-6 text-white" />
+                                 <span className="text-[10px] uppercase font-bold text-ink-400">Thought</span>
+                             </button>
+                             <button onClick={() => addBubble('caption')} className="flex flex-col items-center gap-2 p-3 bg-ink-800 rounded-xl hover:bg-ink-700 transition-colors border border-ink-700 hover:border-purple-500/50">
+                                 <Sidebar className="w-6 h-6 text-white" />
+                                 <span className="text-[10px] uppercase font-bold text-ink-400">Caption</span>
+                             </button>
+                         </div>
 
-                    <div className="border-t border-ink-800 pt-6">
-                        {selectedBubble ? (
-                        <div className="space-y-4">
-                            <label className="block text-xs font-bold text-ink-400 uppercase tracking-widest">
-                            Bubble Content
-                            </label>
-                            <textarea
-                            value={selectedBubble.text}
-                            onChange={(e) => updateBubbleText(selectedBubble.id, e.target.value)}
-                            className="w-full h-28 bg-ink-950 border border-ink-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-purple-500 outline-none resize-none font-comic text-sm"
-                            placeholder="Type dialogue here..."
-                            />
-                            <button
-                            onClick={() => removeBubble(selectedBubble.id)}
-                            className="w-full py-3 flex items-center justify-center gap-2 text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-xl transition-colors text-sm font-medium border border-red-500/20"
-                            >
-                            <Trash2 className="w-4 h-4" /> Remove Bubble
-                            </button>
-                        </div>
-                        ) : (
-                        <div className="flex flex-col items-center justify-center py-10 text-ink-600 border-2 border-dashed border-ink-800 rounded-xl">
-                            <Type className="w-8 h-8 mb-2 opacity-50" />
-                            <span className="text-sm font-hand text-lg">Select a bubble to edit</span>
-                        </div>
-                        )}
-                    </div>
+                         {selectedBubble ? (
+                             <div className="space-y-3 bg-ink-800/50 p-4 rounded-xl border border-ink-700">
+                                 <div className="flex justify-between items-center">
+                                    <label className="text-xs font-bold text-ink-400 uppercase">Edit Text</label>
+                                    <button onClick={() => removeBubble(selectedBubble.id)} className="text-red-400 hover:text-red-300 p-1">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                 </div>
+                                 <textarea
+                                    value={selectedBubble.text}
+                                    onChange={(e) => updateBubbleText(selectedBubble.id, e.target.value)}
+                                    className="w-full h-24 bg-ink-950 border border-ink-700 rounded-lg p-3 text-white focus:border-purple-500 outline-none resize-none font-comic"
+                                 />
+                             </div>
+                         ) : (
+                             <div className="text-center text-ink-500 py-8 text-sm">
+                                 Select a bubble to edit text
+                             </div>
+                         )}
                     </div>
                 )}
 
-                {(activeTab === 'adjust' || activeTab === 'transform') && (
+                {activeTab === 'adjust' && (
                     <div className="space-y-6 animate-slide-up">
-                            {activeTab === 'adjust' && (
-                                <>
-                                {['brightness', 'contrast', 'saturation'].map((adj) => (
-                                    <div key={adj}>
-                                        <label className="flex justify-between text-xs font-bold text-ink-400 uppercase tracking-widest mb-3">
-                                            <span>{adj}</span>
-                                            <span className="text-purple-400 font-mono">{adjustments[adj as keyof typeof adjustments]}%</span>
-                                        </label>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="200"
-                                            value={adjustments[adj as keyof typeof adjustments]}
-                                            onChange={(e) => setAdjustments({ ...adjustments, [adj]: Number(e.target.value) })}
-                                            className="w-full h-2 bg-ink-950 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                                        />
-                                    </div>
-                                ))}
-                                </>
-                            )}
-                            {activeTab === 'transform' && (
-                                <>
-                                <div>
-                                    <label className="flex justify-between text-xs font-bold text-ink-400 uppercase tracking-widest mb-3">
-                                        <span>Zoom</span>
-                                        <span className="text-purple-400 font-mono">{Math.round(transform.zoom * 100)}%</span>
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min="1"
-                                        max="3"
-                                        step="0.1"
-                                        value={transform.zoom}
-                                        onChange={(e) => setTransform({ ...transform, zoom: Number(e.target.value) })}
-                                        className="w-full h-2 bg-ink-950 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                        <div className="space-y-4">
+                            <label className="text-sm font-bold text-ink-300 flex justify-between">
+                                Brightness <span>{adjustments.brightness}%</span>
+                            </label>
+                            <input 
+                                type="range" min="0" max="200" 
+                                value={adjustments.brightness}
+                                onChange={(e) => setAdjustments({...adjustments, brightness: Number(e.target.value)})}
+                                className="w-full accent-purple-500 h-2 bg-ink-800 rounded-lg appearance-none cursor-pointer"
+                            />
+                        </div>
+                        <div className="space-y-4">
+                            <label className="text-sm font-bold text-ink-300 flex justify-between">
+                                Contrast <span>{adjustments.contrast}%</span>
+                            </label>
+                            <input 
+                                type="range" min="0" max="200" 
+                                value={adjustments.contrast}
+                                onChange={(e) => setAdjustments({...adjustments, contrast: Number(e.target.value)})}
+                                className="w-full accent-purple-500 h-2 bg-ink-800 rounded-lg appearance-none cursor-pointer"
+                            />
+                        </div>
+                        <div className="space-y-4">
+                            <label className="text-sm font-bold text-ink-300 flex justify-between">
+                                Saturation <span>{adjustments.saturation}%</span>
+                            </label>
+                            <input 
+                                type="range" min="0" max="200" 
+                                value={adjustments.saturation}
+                                onChange={(e) => setAdjustments({...adjustments, saturation: Number(e.target.value)})}
+                                className="w-full accent-purple-500 h-2 bg-ink-800 rounded-lg appearance-none cursor-pointer"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'transform' && (
+                     <div className="space-y-6 animate-slide-up">
+                        <div className="space-y-4">
+                            <label className="text-sm font-bold text-ink-300 flex justify-between">
+                                <span className="flex items-center gap-2"><RotateCw className="w-4 h-4"/> Rotation</span> 
+                                <span>{transform.rotation}°</span>
+                            </label>
+                            <input 
+                                type="range" min="-180" max="180" 
+                                value={transform.rotation}
+                                onChange={(e) => setTransform({...transform, rotation: Number(e.target.value)})}
+                                className="w-full accent-purple-500 h-2 bg-ink-800 rounded-lg appearance-none cursor-pointer"
+                            />
+                        </div>
+                        <div className="space-y-4">
+                            <label className="text-sm font-bold text-ink-300 flex justify-between">
+                                Zoom <span>{transform.zoom}x</span>
+                            </label>
+                            <input 
+                                type="range" min="0.5" max="3" step="0.1"
+                                value={transform.zoom}
+                                onChange={(e) => setTransform({...transform, zoom: Number(e.target.value)})}
+                                className="w-full accent-purple-500 h-2 bg-ink-800 rounded-lg appearance-none cursor-pointer"
+                            />
+                        </div>
+                        <div className="pt-4 border-t border-ink-700">
+                             <div className="space-y-2">
+                                <label className="text-xs font-bold text-ink-400 uppercase">Pan Image</label>
+                                <div className="grid grid-cols-2 gap-4">
+                                     <input 
+                                        type="range" min="-200" max="200"
+                                        value={transform.panX}
+                                        onChange={(e) => setTransform({...transform, panX: Number(e.target.value)})}
+                                        className="w-full accent-blue-500 h-1 bg-ink-800 rounded-lg appearance-none cursor-pointer"
+                                        title="Pan X"
+                                    />
+                                     <input 
+                                        type="range" min="-200" max="200"
+                                        value={transform.panY}
+                                        onChange={(e) => setTransform({...transform, panY: Number(e.target.value)})}
+                                        className="w-full accent-blue-500 h-1 bg-ink-800 rounded-lg appearance-none cursor-pointer"
+                                        title="Pan Y"
                                     />
                                 </div>
-                                <div>
-                                    <label className="flex justify-between text-xs font-bold text-ink-400 uppercase tracking-widest mb-3">
-                                        <span>Rotation</span>
-                                        <span className="text-purple-400 font-mono">{transform.rotation}°</span>
-                                    </label>
-                                    <div className="flex items-center gap-4">
-                                        <input
-                                            type="range"
-                                            min="-180"
-                                            max="180"
-                                            value={transform.rotation}
-                                            onChange={(e) => setTransform({ ...transform, rotation: Number(e.target.value) })}
-                                            className="flex-1 h-2 bg-ink-950 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                                        />
-                                        <button 
-                                            onClick={() => setTransform({...transform, rotation: (transform.rotation + 90) % 360})}
-                                            className="p-2 bg-ink-800 rounded-lg hover:bg-ink-700 text-white transition-colors"
-                                        >
-                                            <RotateCw className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                                {['panX', 'panY'].map((pan) => (
-                                    <div key={pan}>
-                                        <label className="flex justify-between text-xs font-bold text-ink-400 uppercase tracking-widest mb-3">
-                                            <span>{pan === 'panX' ? 'Horizontal Pan' : 'Vertical Pan'}</span>
-                                            <span className="text-purple-400 font-mono">{transform[pan as keyof typeof transform]}px</span>
-                                        </label>
-                                        <input
-                                            type="range"
-                                            min="-250"
-                                            max="250"
-                                            value={transform[pan as keyof typeof transform]}
-                                            onChange={(e) => setTransform({ ...transform, [pan]: Number(e.target.value) })}
-                                            className="w-full h-2 bg-ink-950 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                                        />
-                                    </div>
-                                ))}
-                                </>
-                            )}
-                    </div>
+                             </div>
+                        </div>
+                     </div>
                 )}
+
             </div>
         </div>
       </div>
