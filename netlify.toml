@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Note: The API_KEY environment variable should be configured in the Netlify UI
+# Navigate to: Site configuration > Environment variables
+# Set API_KEY with the value provided by the user
+# This is recommended for sensitive values to keep them out of the repository
+
+[context.dev.environment]
+  # Local development - you can set API_KEY in a .env.local file
+  NODE_ENV = "development"
